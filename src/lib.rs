@@ -1,0 +1,402 @@
+//  Copyright 2014 David Lee Aronson.
+//
+//  This program is free software: you can redistribute it and/or modify it under the terms of the
+//  GNU Lesser General Public License as published by the Free Software Foundation, either version 3
+//  of the License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+//  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+//  the GNU Lesser General Public License for more details.
+//
+//  You should have received a copy of the GNU Lesser General Public License along with this
+//  program.  If not, see <http://www.gnu.org/licenses/>.
+
+extern crate core;
+extern crate alloc;
+
+use core::default::Default;
+use core::fmt;
+use core::iter;
+use core::mem;
+use core::num::{Int,UnsignedInt};
+use core::ptr;
+use core::raw::Slice as RawSlice;
+
+use std::hash::Hash;
+use std::cmp;
+
+use alloc::heap;
+
+static INITIAL_CAPACITY: uint = 8u; // 2^3
+static MINIMUM_CAPACITY: uint = 2u;
+
+#[deriving(Hash)]
+pub struct GapBuffer<T> {
+    /// A GapBuffer is a dynamic array which implements methods to shift the empty portion of the
+    /// array around so that modifications can occur at any point in the array. It is optimized for
+    /// data structures in which insertions and deletions tend to occur in sequence within the same
+    /// area of the array, such as a buffer for a text editor.
+    //
+    // head is the point at which the gap begins, where pushes occur, the first element of the array
+    //  which is treated as empty.
+    // tail is the index in the underlying array at which the gap ends, where the element that
+    //  logically follows the element before head is located.
+    // cap is the maximum capacity of the array.
+    // ptr is the pointer to the first element of the array.
+    head: uint,
+    tail: uint,
+    cap: uint,
+    ptr: *mut T
+}
+
+//get_idx returns the actual index from a logical index (so that it skips the gap)
+fn get_idx(i: uint, leng: uint, head: uint) -> uint { if i < head { i } else { i + leng } }
+
+
+impl<T> GapBuffer<T> {
+    /// Turn ptr into a slice
+    #[inline]
+    unsafe fn buffer_as_slice(&self) -> &[T] {
+        mem::transmute(RawSlice { data: self.ptr as *const T, len: self.cap })
+    }
+
+    /// Moves an element out of the buffer
+    #[inline]
+    unsafe fn buffer_read(&mut self, off: uint) -> T {
+        ptr::read(self.ptr.offset(off as int) as *const T)
+    }
+
+    /// Writes an element into the buffer, moving it.
+    #[inline]
+    unsafe fn buffer_write(&mut self, off: uint, t: T) {
+        ptr::write(self.ptr.offset(off as int), t);
+    }
+
+    /// Returns true iff the buffer is at capacity
+    #[inline]
+    fn is_full(&self) -> bool { self.cap - self.len() == 1 }
+
+    #[inline]
+    fn get_idx(&self, i: uint) -> uint { get_idx(i, self.tail - self.head, self.head)}
+
+    /// Copies a contiguous block of memory len long from src to dst
+    #[inline]
+    fn copy(&self, dst: uint, src: uint, len: uint) {
+        unsafe {
+            debug_assert!(dst + len <= self.cap, "dst={} src={} len={} cap={}", dst, src, len,
+                          self.cap);
+            debug_assert!(src + len <= self.cap, "dst={} src={} len={} cap={}", dst, src, len,
+                          self.cap);
+            ptr::copy_memory(
+                self.ptr.offset(dst as int),
+                self.ptr.offset(src as int) as *const T,
+                len);
+        }
+    }
+
+    ///Shift the gap in the GapBuffer.
+    //     V         H         E
+    //[o o o o o o o . . . . . o o o o]
+    //
+    //     H         E
+    //[o o . . . . . o o o o o o o o o]
+    //               M M M M M
+    //
+    //         H         E       V
+    //[o o o o . . . . . o o o o o o o]
+    //
+    //                 H         E
+    //[o o o o o o o o . . . . . o o o]
+    //         M M M M
+    fn shift(&mut self, i: uint) {
+
+        if i < self.head { self.copy(self.tail - self.head + i, i, self.head - i); }
+        else { self.copy(self.head, self.tail, i - self.head); }
+
+        let gapsize = self.tail - self.head;
+
+        self.head = i;
+        self.tail = self.head + gapsize;
+
+    }
+
+
+}
+
+impl<T> GapBuffer<T> {
+
+    ///Constructs an empty GapBuffer.
+    pub fn new() -> GapBuffer<T> {
+        GapBuffer::with_capacity(INITIAL_CAPACITY)
+    }
+
+    ///Constructs a GapBuffer with a given initial capacity.
+    pub fn with_capacity(n: uint) -> GapBuffer<T> {
+        let cap = cmp::max(n + 1, MINIMUM_CAPACITY).next_power_of_two();
+        let size = cap.checked_mul(mem::size_of::<T>())
+                      .expect("capacity overflow");
+
+        let ptr = if mem::size_of::<T>() != 0 {
+            unsafe {
+                let ptr = heap::allocate(size, mem::min_align_of::<T>())  as *mut T;;
+                if ptr.is_null() { ::alloc::oom() }
+                ptr
+            }
+        } else {
+            heap::EMPTY as *mut T
+        };
+
+        GapBuffer {
+            head: 0,
+            tail: cap,
+            cap: cap,
+            ptr: ptr
+        }
+    }
+
+    ///Get a reference to the element at the index.
+    pub fn get(&self, i: uint) -> Option<&T> {
+        if i < self.len() {
+            let idx = self.get_idx(i);
+            unsafe { Some(&*self.ptr.offset(idx as int)) }
+        } else {
+            None
+        }
+    }
+
+    ///Get a mutable reference to the element at the index.
+    pub fn get_mut(&mut self, i: uint) -> Option<&mut T> {
+        if i < self.len() {
+            let idx = self.get_idx(i);
+            unsafe { Some(&mut *self.ptr.offset(idx as int)) }
+        } else {
+            None
+        }
+    }
+
+    ///Swap the elements at the index.
+    pub fn swap(&mut self, i: uint, j: uint) {
+        assert!(i < self.len());
+        assert!(j < self.len());
+        let ri = self.get_idx(i);
+        let rj = self.get_idx(j);
+        unsafe {
+            ptr::swap(self.ptr.offset(ri as int), self.ptr.offset(rj as int))
+        }
+    }
+
+    ///Get the capacity of the GapBuffer without expanding.
+    #[inline]
+    pub fn capacity(&self) -> uint { self.cap - 1 }
+
+    ///Reserve at least this much additional space for the GapBuffer.
+    pub fn reserve(&mut self, additional: uint) {
+        let new_len = self.len() + additional;
+        assert!(new_len + 1 > self.len(), "capacity overflow");
+        if new_len > self.capacity() {
+            let count = (new_len + 1).next_power_of_two();
+            assert!(count >= new_len + 1);
+
+            if mem::size_of::<T>() != 0 {
+                let old = self.cap * mem::size_of::<T>();
+                let new = count.checked_mul(mem::size_of::<T>())
+                               .expect("capacity overflow");
+                unsafe {
+                    self.ptr = heap::reallocate(self.ptr as *mut u8,
+                                                old,
+                                                new,
+                                                mem::min_align_of::<T>()) as *mut T;
+                    if self.ptr.is_null() { ::alloc::oom() }
+                }
+            }
+
+            // Move the second segment of the GapBuffer
+
+            let oldcap = self.cap;
+            let oldtail = self.tail;
+            self.cap = count;
+            self.tail = self.cap - oldcap + oldtail;
+
+            self.copy(self.tail, oldtail, oldcap - oldtail);
+
+            debug_assert!(self.head < self.cap);
+            debug_assert!(self.tail <= self.cap);
+            debug_assert!(self.cap.count_ones() == 1);
+        }
+    }
+
+    ///Get an iterator of this GapBuffer.
+    pub fn iter(&self) -> Items<T> {
+        Items {
+            head: self.len(),
+            tail: 0u,
+            ghead: self.head,
+            gtail: self.tail,
+            buff: unsafe { self.buffer_as_slice() }
+        }
+    }
+
+    ///Get the length of the GapBuffer.
+    pub fn len(&self) -> uint { self.cap - self.tail + self.head }
+
+    ///Is the GapBuffer empty?
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
+
+    ///Clear the GapBuffer. NOTE: datais not removed, just made inaccessible.
+    pub fn clear(&mut self) {
+        self.head = 0;
+        self.tail = self.cap;
+    }
+
+    //Insert a new T at a given index (the gap will be shifted to that index).
+    pub fn insert(&mut self, i: uint, t: T) {
+        assert!(i <= self.len(), "index out of range");
+        if self.is_full() {
+            self.reserve(1);
+            debug_assert!(!self.is_full());
+        }
+        if i != self.head { self.shift(i); }
+        let head = self.head;
+        self.head += 1;
+        unsafe { self.buffer_write(head, t) };
+
+    }
+
+    //Remvoe from a given index (the gap will be shifted to that index).
+    pub fn remove(&mut self, i: uint) -> Option<T> {
+        assert!(i < self.len(), "index out of range");
+        if i + 1 != self.head { self.shift(i + 1) }
+        self.head = self.head - 1;
+        let head = self.head;
+        unsafe { Some(self.buffer_read(head)) }
+    }
+
+}
+
+//Clone
+impl<T: Clone> Clone for GapBuffer<T> {
+    fn clone(&self) -> GapBuffer<T> {
+        self.iter().map(|t| t.clone()).collect()
+    }
+}
+
+//Default
+impl<T> Default for GapBuffer<T> {
+    #[inline]
+    fn default() -> GapBuffer<T> { GapBuffer::new() }
+}
+
+//Eq & PartialEq
+impl<A: PartialEq> PartialEq for GapBuffer<A> {
+    fn eq(&self, other: &GapBuffer<A>) -> bool {
+        self.len() == other.len() &&
+            self.iter().zip(other.iter()).all(|(a, b)| a.eq(b))
+    }
+    fn ne(&self, other: &GapBuffer<A>) -> bool {
+        !self.eq(other)
+    }
+}
+
+impl<A: Eq> Eq for GapBuffer<A> {}
+
+//Ord & PartialOrd
+impl<A: PartialOrd> PartialOrd for GapBuffer<A> {
+    fn partial_cmp(&self, other: &GapBuffer<A>) -> Option<Ordering> {
+        iter::order::partial_cmp(self.iter(), other.iter())
+    }
+}
+
+impl<A: Ord> Ord for GapBuffer<A> {
+    #[inline]
+    fn cmp(&self, other: &GapBuffer<A>) -> Ordering {
+        iter::order::cmp(self.iter(), other.iter())
+    }
+}
+
+//Hash
+
+//Index & IndexMut
+impl<A> Index<uint, A> for GapBuffer<A> {
+    #[inline]
+    fn index<'a>(&'a self, i: &uint) -> &'a A {
+        self.get(*i).expect("Out of bounds access")
+    }
+}
+
+impl<A> IndexMut<uint, A> for GapBuffer<A> {
+    #[inline]
+    fn index_mut<'a>(&'a mut self, i: &uint) -> &'a mut A {
+        self.get_mut(*i).expect("Out of bounds access")
+    }
+}
+
+//FromIterator
+impl<A> FromIterator<A> for GapBuffer<A> {
+    fn from_iter<T: Iterator<A>>(iterator: T) -> GapBuffer<A> {
+        let (lower, _) = iterator.size_hint();
+        let mut zip = GapBuffer::with_capacity(lower);
+        zip.extend(iterator);
+        zip
+    }
+}
+
+//Extend
+impl<A> Extend<A> for GapBuffer<A> {
+    fn extend<T: Iterator<A>>(&mut self, mut iterator: T) {
+        let mut head = 0;
+        for elem in iterator {
+            self.insert(head, elem);
+            head += 1;
+        }
+    }
+}
+
+//Show
+impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "["));
+
+        for (i, e) in self.iter().enumerate() {
+            if i != 0 { try!(write!(f, ", ")); }
+            try!(write!(f, "{}", *e));
+        }
+
+        write!(f, "]")
+    }
+}
+
+//### Iterator implementation. #####################################################################
+
+#[deriving(Hash)]
+pub struct Items<'a, T:'a> {
+    buff: &'a [T],
+    tail: uint,
+    head: uint,
+    ghead: uint,
+    gtail: uint,
+}
+
+impl<'a, T> Iterator<&'a T> for Items<'a, T> {
+    #[inline]
+    fn next(&mut self) -> Option<&'a T> {
+        if self.tail + self.gtail - self.ghead == self.buff.len() { return None };
+        let tail = get_idx(self.tail, self.gtail - self.ghead, self.ghead);
+        self.tail += 1;
+        unsafe { Some(self.buff.unsafe_get(tail)) }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (uint, Option<uint>) {
+        let len = self.buff.len() - self.gtail + self.ghead;
+        (len, Some(len))
+    }
+}
+
+impl<'a, T> DoubleEndedIterator<&'a T> for Items<'a, T> {
+    fn next_back(&mut self) -> Option<&'a T> {
+        let head = get_idx(self.head , self.gtail - self.ghead, self.ghead);
+        self.head -= 1;
+        if head - 1 != self.head { None }
+        else { unsafe { Some(self.buff.unsafe_get(head)) } }
+    }
+}

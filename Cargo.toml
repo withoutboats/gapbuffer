@@ -1,0 +1,5 @@
+[package]
+
+name = "gapbuffer"
+version = "0.0.1"
+authors = ["Lee Aronson <lee.aronson@libertad.ucsd.edu>"]
