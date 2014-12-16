@@ -2,4 +2,12 @@
 
 name = "gapbuffer"
 version = "0.0.1"
-authors = ["Lee Aronson <lee.aronson@libertad.ucsd.edu>"]
+authors = ["David Lee Aronson <lee@libertad.ucsd.edu>"]
+description = "A gap buffer in Rust."
+repository = "https://github.com/dlaronson/gapbuffer"
+homepage = "https://github.com/dlaronson/gapbuffer"
+readme = "README.md"
+license = "LGPL-3.0+"
+
+[lib]
+name = "gapbuffer"
