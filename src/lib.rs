@@ -22,7 +22,6 @@ use core::num::{Int,UnsignedInt};
 use core::ptr;
 use core::raw::Slice as RawSlice;
 
-use std::hash::Hash;
 use std::cmp;
 
 use alloc::heap;
@@ -313,8 +312,6 @@ impl<A: Ord> Ord for GapBuffer<A> {
     }
 }
 
-//Hash
-
 //Index & IndexMut
 impl<A> Index<uint, A> for GapBuffer<A> {
     #[inline]
@@ -366,8 +363,6 @@ impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
 }
 
 //### Iterator implementation. #####################################################################
-
-#[deriving(Hash)]
 pub struct Items<'a, T:'a> {
     buff: &'a [T],
     tail: uint,
