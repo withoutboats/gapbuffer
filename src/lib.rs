@@ -29,7 +29,6 @@ use alloc::heap;
 static INITIAL_CAPACITY: uint = 8u; // 2^3
 static MINIMUM_CAPACITY: uint = 2u;
 
-#[deriving(Hash)]
 pub struct GapBuffer<T> {
     /// A GapBuffer is a dynamic array which implements methods to shift the empty portion of the
     /// array around so that modifications can occur at any point in the array. It is optimized for
