@@ -23,6 +23,7 @@ use core::ptr;
 use core::raw::Slice as RawSlice;
 
 use std::cmp;
+use std::ops::Slice;
 
 use alloc::heap;
 
@@ -54,8 +55,8 @@ fn get_idx(i: uint, leng: uint, head: uint) -> uint { if i < head { i } else { i
 impl<T> GapBuffer<T> {
     /// Turn ptr into a slice
     #[inline]
-    unsafe fn buffer_as_slice(&self) -> &[T] {
-        mem::transmute(RawSlice { data: self.ptr as *const T, len: self.cap })
+    fn buffer_as_slice(&self) -> &[T] {
+        unsafe { mem::transmute(RawSlice { data: self.ptr as *const T, len: self.cap }) }
     }
 
     /// Moves an element out of the buffer
@@ -230,7 +231,7 @@ impl<T> GapBuffer<T> {
             tail: 0u,
             ghead: self.head,
             gtail: self.tail,
-            buff: unsafe { self.buffer_as_slice() }
+            buff: self.buffer_as_slice()
         }
     }
 
@@ -359,6 +360,27 @@ impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
 
         write!(f, "]")
     }
+}
+
+//Slice
+impl<T> Slice<uint, [T]> for GapBuffer<T> {
+
+    fn as_slice_<'a>(&'a self) -> &'a [T] {
+        self.buffer_as_slice()
+    }
+
+    fn slice_from_or_fail<'a>(&'a self, from: &uint) -> &'a [T] {
+        self.buffer_as_slice().slice_from_or_fail(from)
+    }
+
+    fn slice_to_or_fail<'a>(&'a self, to: &uint) -> &'a [T] {
+        self.buffer_as_slice().slice_to_or_fail(to)
+    }
+
+    fn slice_or_fail    <'a>(&'a self, from: &uint, to: &uint) -> &'a [T] {
+        self.buffer_as_slice().slice_or_fail(from, to)
+    }
+
 }
 
 //### Iterator implementation. #####################################################################

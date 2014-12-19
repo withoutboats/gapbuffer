@@ -1,3 +1,5 @@
+#![feature(slicing_syntax)]
+
 extern crate gapbuffer;
 
 use gapbuffer::GapBuffer;
@@ -87,6 +89,53 @@ fn test_remove() {
 
     for x in range(0,100) {
         assert!(test1.remove(0) == Some(x), "Remove failed at {} (forward)", x);
+    }
+
+}
+
+#[test]
+fn test_slice() {
+
+    let mut test = GapBuffer::new();
+
+    for x in range(0, 5) {
+        test.insert(x,x)
+    }
+
+    let mut slice = test[].iter();
+    let mut index = range(0, 5);
+    loop {
+        match (slice.next(), index.next()) {
+            (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in []"); }
+            (None, _) | (_, None) => { break }
+        }
+    }
+
+    slice = test[3..].iter();
+    index = range(3, 5);
+    loop {
+        match (slice.next(), index.next()) {
+            (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [3..]"); }
+            (None, _) | (_, None) => { break }
+        }
+    }
+
+    slice = test[..3].iter();
+    index = range(0, 3);
+    loop {
+        match (slice.next(), index.next()) {
+            (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [..3]"); }
+            (None, _) | (_, None) => { break }
+        }
+    }
+
+    slice = test[1..4].iter();
+    index = range(1, 4);
+    loop {
+        match (slice.next(), index.next()) {
+            (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [1..4]"); }
+            (None, _) | (_, None) => { break }
+        }
     }
 
 }
