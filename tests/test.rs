@@ -21,8 +21,8 @@ use gapbuffer::GapBuffer;
 fn test_init() {
 //Test declaration & initialization
     let test: GapBuffer<uint> = GapBuffer::with_capacity(100);
-    assert!(test.capacity() >= 100, "buffer initialized to {} capacity", test.capacity())
-    assert!(test.len() == 0, "Buffer initialized to {} length", test.len())
+    assert!(test.capacity() >= 100, "buffer initialized to {} capacity", test.capacity());
+    assert!(test.len() == 0, "Buffer initialized to {} length", test.len());
 
 }
 
@@ -34,13 +34,13 @@ fn test_insert() {
     for x in range(0, 100) {
         if x % 2 == 0 { test.insert(x/2, x); }
     }
-    assert!(test.len() == 50, "After even insertions, buffer length is {}", test.len())
+    assert!(test.len() == 50, "After even insertions, buffer length is {}", test.len());
 
     //Test insertion in the middle.
     for x in range(0, 100) {
         if x % 2 == 1 { test.insert(x, x); }
     }
-    assert!(test.len() == 100, "After odd insertions, buffer length is {}", test.len())
+    assert!(test.len() == 100, "After odd insertions, buffer length is {}", test.len());
 }
 
 #[test]
@@ -92,16 +92,14 @@ fn test_index() {
 fn test_remove() {
 //Test removal.
 
-    let mut test1: GapBuffer<uint> = GapBuffer::new();
-    let mut test2: GapBuffer<uint> = GapBuffer::new();
+    let mut test: GapBuffer<uint> = GapBuffer::new();
 
     for x in range(0, 100) {
-        test1.insert(x,x);
-        test2.insert(x,x);
+        test.insert(x,x);
     }
 
     for x in range(0,100) {
-        assert!(test1.remove(0) == Some(x), "Remove failed at {} (forward)", x);
+        assert!(test.remove(0) == Some(x), "Remove failed at {} (forward)", x);
     }
 
 }
