@@ -520,14 +520,22 @@ mod tests {
     fn test_remove() {
     //Test removal.
 
-        let mut test: GapBuffer<uint> = GapBuffer::new();
+        let mut test1: GapBuffer<uint> = GapBuffer::new();
+        let mut test2: GapBuffer<uint> = GapBuffer::new();
 
-        for x in range(0, 100) {
-            test.insert(x,x);
+        for x in range(0, 10) {
+            test1.insert(x,x);
         }
 
-        for x in range(0,100) {
-            assert!(test.remove(0) == Some(x), "Remove failed at {} (forward)", x);
+        for x in range(0,10) {
+            assert!(test1.remove(0) == Some(x), "Remove failed at {} (forward)", x);
+        }
+
+        test2.extend(range(0, 5));
+        test2.remove(0);
+        println!("{}", test2);
+        for (i, x) in test2.iter().enumerate() {
+            assert!(*x == i + 1, "Remove test2 failed. Index {} is {}", x, i);
         }
 
     }
