@@ -587,4 +587,14 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_slice_after_remove() {
+        let mut buffer: GapBuffer<uint> = GapBuffer::new();
+        buffer.extend(range(0,5));
+        buffer.remove(0);
+
+        assert!(buffer[] == [1, 2, 3, 4],  "Slice after removed failed. {}", buffer[]);
+        assert!(buffer[0] == 1, "buffer[0] = {}", buffer[0]);
+    }
+
 }
