@@ -272,6 +272,29 @@ impl<T> GapBuffer<T> {
     }
 }
 
+//AsSlice
+impl<T: Clone> AsSlice<T> for GapBuffer<T> {
+    fn as_slice<'a>(&'a self) -> &'a [T]{
+        unsafe {
+            if self.head < self.len() {
+                let data = heap::allocate(self.len(), mem::min_align_of::<T>())  as *mut T;
+                for (i, t) in self.iter().enumerate() {
+                    ptr::write(data.offset(i as int), (*t).clone());
+                }
+                mem::transmute(RawSlice {
+                    data: data as *const T,
+                    len: self.len(),
+                })
+            } else {
+                mem::transmute(RawSlice {
+                    data: self.ptr as *const T,
+                    len: self.len(),
+                })
+            }
+        }
+    }
+}
+
 //Clone
 impl<T: Clone> Clone for GapBuffer<T> {
     fn clone(&self) -> GapBuffer<T> {
@@ -363,22 +386,22 @@ impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
 }
 
 //Slice
-impl<T> Slice<uint, [T]> for GapBuffer<T> {
+impl<T: Clone> Slice<uint, [T]> for GapBuffer<T> {
 
     fn as_slice_<'a>(&'a self) -> &'a [T] {
-        self.buffer_as_slice()
+        self.as_slice()
     }
 
     fn slice_from_or_fail<'a>(&'a self, from: &uint) -> &'a [T] {
-        self.buffer_as_slice().slice_from_or_fail(from)
+        self.as_slice().slice_from_or_fail(from)
     }
 
     fn slice_to_or_fail<'a>(&'a self, to: &uint) -> &'a [T] {
-        self.buffer_as_slice().slice_to_or_fail(to)
+        self.as_slice().slice_to_or_fail(to)
     }
 
-    fn slice_or_fail    <'a>(&'a self, from: &uint, to: &uint) -> &'a [T] {
-        self.buffer_as_slice().slice_or_fail(from, to)
+    fn slice_or_fail <'a>(&'a self, from: &uint, to: &uint) -> &'a [T] {
+        self.as_slice().slice_or_fail(from, to)
     }
 
 }
