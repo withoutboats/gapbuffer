@@ -24,7 +24,9 @@ use core::ptr;
 use core::raw::Slice as RawSlice;
 
 use std::cmp;
-use std::ops::Slice;
+use std::iter::FromIterator;
+use std::cmp::Ordering;
+use std::ops::{Index, IndexMut, Slice};
 
 use alloc::heap;
 
@@ -421,7 +423,7 @@ impl<'a, T> Iterator<&'a T> for Items<'a, T> {
         if self.tail + self.gtail - self.ghead == self.buff.len() { return None };
         let tail = get_idx(self.tail, self.gtail - self.ghead, self.ghead);
         self.tail += 1;
-        unsafe { Some(self.buff.unsafe_get(tail)) }
+        unsafe { Some(self.buff.get_unchecked(tail)) }
     }
 
     #[inline]
@@ -436,7 +438,7 @@ impl<'a, T> DoubleEndedIterator<&'a T> for Items<'a, T> {
         let head = get_idx(self.head , self.gtail - self.ghead, self.ghead);
         self.head -= 1;
         if head - 1 != self.head { None }
-        else { unsafe { Some(self.buff.unsafe_get(head)) } }
+        else { unsafe { Some(self.buff.get_unchecked(head)) } }
     }
 }
 
