@@ -332,13 +332,13 @@ impl<T> Deref for GapBuffer<T> {
 }
 
 //Ord & PartialOrd
-impl<A: PartialOrd> PartialOrd for GapBuffer<A> {
+impl<A: PartialOrd, Clone> PartialOrd for GapBuffer<A> {
     fn partial_cmp(&self, other: &GapBuffer<A>) -> Option<Ordering> {
         iter::order::partial_cmp(self.iter(), other.iter())
     }
 }
 
-impl<A: Ord> Ord for GapBuffer<A> {
+impl<A: Ord, Clone> Ord for GapBuffer<A> {
     #[inline]
     fn cmp(&self, other: &GapBuffer<A>) -> Ordering {
         iter::order::cmp(self.iter(), other.iter())
@@ -422,7 +422,7 @@ pub struct Items<'a, T:'a> {
     gtail: uint,
 }
 
-impl<'a, T> Iterator for Items<'a, T> {
+impl<'a, T: Clone> Iterator for Items<'a, T> {
     type Item = T;
 
     #[inline]
@@ -430,7 +430,7 @@ impl<'a, T> Iterator for Items<'a, T> {
         if self.tail + self.gtail - self.ghead == self.buff.len() { return None };
         let tail = get_idx(self.tail, self.gtail - self.ghead, self.ghead);
         self.tail += 1;
-        unsafe { Some(self.buff.get_unchecked(tail)) }
+        unsafe { Some((*self.buff.get_unchecked(tail)).clone()) }
     }
 
     #[inline]
@@ -440,12 +440,12 @@ impl<'a, T> Iterator for Items<'a, T> {
     }
 }
 
-impl<'a, T> DoubleEndedIterator for Items<'a, T> {
+impl<'a, T: Clone> DoubleEndedIterator for Items<'a, T> {
     fn next_back(&mut self) -> Option<T> {
         let head = get_idx(self.head , self.gtail - self.ghead, self.ghead);
         self.head -= 1;
         if head - 1 != self.head { None }
-        else { unsafe { Some(self.buff.get_unchecked(head)) } }
+        else { unsafe { Some((*self.buff.get_unchecked(head)).clone()) } }
     }
 }
 
