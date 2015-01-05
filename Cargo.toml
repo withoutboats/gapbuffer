@@ -1,7 +1,7 @@
 [package]
 
 name = "gapbuffer"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["David Lee Aronson <lee@libertad.ucsd.edu>"]
 description = "A gap buffer in Rust."
 repository = "https://github.com/dlaronson/gapbuffer"
