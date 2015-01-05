@@ -19,7 +19,6 @@ extern crate alloc;
 
 use core::default::Default;
 use core::fmt;
-use core::iter;
 use core::mem;
 use core::num::{Int,UnsignedInt};
 use core::ptr;
@@ -332,16 +331,17 @@ impl<T> Deref for GapBuffer<T> {
 }
 
 //Ord & PartialOrd
-impl<A: PartialOrd, Clone> PartialOrd for GapBuffer<A> {
+impl<A: PartialOrd> PartialOrd for GapBuffer<A> {
+    #[inline]
     fn partial_cmp(&self, other: &GapBuffer<A>) -> Option<Ordering> {
-        iter::order::partial_cmp(self.iter(), other.iter())
+        self.as_slice().partial_cmp(other.as_slice())
     }
 }
 
-impl<A: Ord, Clone> Ord for GapBuffer<A> {
+impl<A: Ord> Ord for GapBuffer<A> {
     #[inline]
     fn cmp(&self, other: &GapBuffer<A>) -> Ordering {
-        iter::order::cmp(self.iter(), other.iter())
+        self.as_slice().cmp(other.as_slice())
     }
 }
 
@@ -366,7 +366,7 @@ impl<A> IndexMut<uint> for GapBuffer<A> {
 
 //FromIterator
 impl<A> FromIterator<A> for GapBuffer<A> {
-    fn from_iter<I: Iterator<Item=A>>(mut iterator: I) -> GapBuffer<A> {
+    fn from_iter<I: Iterator<Item=A>>(iterator: I) -> GapBuffer<A> {
         let (lower, _) = iterator.size_hint();
         let mut zip = GapBuffer::with_capacity(lower);
         zip.extend(iterator);
