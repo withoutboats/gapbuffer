@@ -11,6 +11,8 @@
 //  You should have received a copy of the GNU Lesser General Public License along with this
 //  program.  If not, see <http://www.gnu.org/licenses/>.
 #![feature(slicing_syntax)]
+#![feature(associated_types)]
+#![feature(default_type_params)]
 
 extern crate core;
 extern crate alloc;
@@ -24,6 +26,7 @@ use core::ptr;
 use core::raw::Slice as RawSlice;
 
 use std::cmp;
+use std::ops::Deref;
 use std::iter::FromIterator;
 use std::cmp::Ordering;
 use std::ops::{Index, IndexMut, Slice};
@@ -281,7 +284,7 @@ impl<T: Clone> AsSlice<T> for GapBuffer<T> {
             if self.head < self.len() {
                 let data = heap::allocate(self.len(), mem::min_align_of::<T>())  as *mut T;
                 for (i, t) in self.iter().enumerate() {
-                    ptr::write(data.offset(i as int), (*t).clone());
+                    ptr::write(data.offset(i as int), t.clone());
                 }
                 mem::transmute(RawSlice {
                     data: data as *const T,
@@ -311,17 +314,22 @@ impl<T> Default for GapBuffer<T> {
 }
 
 //Eq & PartialEq
-impl<A: PartialEq> PartialEq for GapBuffer<A> {
-    fn eq(&self, other: &GapBuffer<A>) -> bool {
-        self.len() == other.len() &&
-            self.iter().zip(other.iter()).all(|(a, b)| a.eq(b))
-    }
-    fn ne(&self, other: &GapBuffer<A>) -> bool {
-        !self.eq(other)
-    }
+impl <A, B> PartialEq<GapBuffer<B>> for GapBuffer<A> where A: PartialEq<B> {
+    #[inline]
+    fn eq(&self, other: &GapBuffer<B>) -> bool { PartialEq::eq(&**self, &**other) }
+    #[inline]
+    fn ne(&self, other: &GapBuffer<B>) -> bool { PartialEq::ne(&**self, &**other) }
 }
 
 impl<A: Eq> Eq for GapBuffer<A> {}
+
+impl<T> Deref for GapBuffer<T> {
+    type Target = [T];
+
+    fn deref<'b>(&'b self) -> &'b [T] {
+        self.as_slice()
+    }
+}
 
 //Ord & PartialOrd
 impl<A: PartialOrd> PartialOrd for GapBuffer<A> {
@@ -338,14 +346,18 @@ impl<A: Ord> Ord for GapBuffer<A> {
 }
 
 //Index & IndexMut
-impl<A> Index<uint, A> for GapBuffer<A> {
+impl<A> Index<uint> for GapBuffer<A> {
+    type Output = A;
+
     #[inline]
     fn index<'a>(&'a self, i: &uint) -> &'a A {
         self.get(*i).expect("Out of bounds access")
     }
 }
 
-impl<A> IndexMut<uint, A> for GapBuffer<A> {
+impl<A> IndexMut<uint> for GapBuffer<A> {
+    type Output = A;
+
     #[inline]
     fn index_mut<'a>(&'a mut self, i: &uint) -> &'a mut A {
         self.get_mut(*i).expect("Out of bounds access")
@@ -354,7 +366,7 @@ impl<A> IndexMut<uint, A> for GapBuffer<A> {
 
 //FromIterator
 impl<A> FromIterator<A> for GapBuffer<A> {
-    fn from_iter<T: Iterator<A>>(iterator: T) -> GapBuffer<A> {
+    fn from_iter<I: Iterator<Item=A>>(mut iterator: I) -> GapBuffer<A> {
         let (lower, _) = iterator.size_hint();
         let mut zip = GapBuffer::with_capacity(lower);
         zip.extend(iterator);
@@ -364,7 +376,7 @@ impl<A> FromIterator<A> for GapBuffer<A> {
 
 //Extend
 impl<A> Extend<A> for GapBuffer<A> {
-    fn extend<T: Iterator<A>>(&mut self, mut iterator: T) {
+    fn extend<T: Iterator<Item=A>>(&mut self, mut iterator: T) {
         let mut head = 0;
         for elem in iterator {
             self.insert(head, elem);
@@ -376,14 +388,7 @@ impl<A> Extend<A> for GapBuffer<A> {
 //Show
 impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "["));
-
-        for (i, e) in self.iter().enumerate() {
-            if i != 0 { try!(write!(f, ", ")); }
-            try!(write!(f, "{}", *e));
-        }
-
-        write!(f, "]")
+        self.as_slice().fmt(f)
     }
 }
 
@@ -417,9 +422,11 @@ pub struct Items<'a, T:'a> {
     gtail: uint,
 }
 
-impl<'a, T> Iterator<&'a T> for Items<'a, T> {
+impl<'a, T> Iterator for Items<'a, T> {
+    type Item = T;
+
     #[inline]
-    fn next(&mut self) -> Option<&'a T> {
+    fn next(&mut self) -> Option<T> {
         if self.tail + self.gtail - self.ghead == self.buff.len() { return None };
         let tail = get_idx(self.tail, self.gtail - self.ghead, self.ghead);
         self.tail += 1;
@@ -433,8 +440,8 @@ impl<'a, T> Iterator<&'a T> for Items<'a, T> {
     }
 }
 
-impl<'a, T> DoubleEndedIterator<&'a T> for Items<'a, T> {
-    fn next_back(&mut self) -> Option<&'a T> {
+impl<'a, T> DoubleEndedIterator for Items<'a, T> {
+    fn next_back(&mut self) -> Option<T> {
         let head = get_idx(self.head , self.gtail - self.ghead, self.ghead);
         self.head -= 1;
         if head - 1 != self.head { None }
