@@ -20,7 +20,7 @@ use gapbuffer::GapBuffer;
 #[test]
 fn test_init() {
 //Test declaration & initialization
-    let test: GapBuffer<uint> = GapBuffer::with_capacity(100);
+    let test: GapBuffer<usize> = GapBuffer::with_capacity(100);
     assert!(test.capacity() >= 100, "buffer initialized to {} capacity", test.capacity());
     assert!(test.len() == 0, "Buffer initialized to {} length", test.len());
 
@@ -28,7 +28,7 @@ fn test_init() {
 
 #[test]
 fn test_insert() {
-    let mut test: GapBuffer<uint> = GapBuffer::new();
+    let mut test: GapBuffer<usize> = GapBuffer::new();
 
     //Test insertion to end.
     for x in range(0, 100) {
@@ -46,7 +46,7 @@ fn test_insert() {
 #[test]
 fn test_iter() {
 //Test iteration.
-    let mut test: GapBuffer<uint> = GapBuffer::new();
+    let mut test: GapBuffer<usize> = GapBuffer::new();
 
     for x in range(0, 100) {
         test.insert(x,x);
@@ -57,7 +57,7 @@ fn test_iter() {
     loop {
         match (iterator.next(), index.next()) {
             (Some(x), Some(y)) => {
-                assert!(Some(x) == Some(&y), "(backward iter) Element at index {} is {}", y, x);
+                assert!(Some(x) == Some(y), "(backward iter) Element at index {} is {}", y, x);
             }
             (None, _) | (_, None) => { break }
         }
@@ -65,7 +65,7 @@ fn test_iter() {
     loop {
         match (iterator.next_back(), index.next_back()) {
             (Some(x), Some(y)) => {
-                assert!(Some(x) == Some(&y), "(backward iter) Element at index {} is {}", y, x);
+                assert!(Some(x) == Some(y), "(backward iter) Element at index {} is {}", y, x);
             }
             (None, _) | (_, None) => { break }
         }
@@ -76,7 +76,7 @@ fn test_iter() {
 #[test]
 fn test_index() {
 //Test indexing.
-    let mut test: GapBuffer<uint> = GapBuffer::new();
+    let mut test: GapBuffer<usize> = GapBuffer::new();
 
     for x in range(0, 100) {
         test.insert(x,x);
@@ -92,7 +92,7 @@ fn test_index() {
 fn test_remove() {
 //Test removal.
 
-    let mut test: GapBuffer<uint> = GapBuffer::new();
+    let mut test: GapBuffer<usize> = GapBuffer::new();
 
     for x in range(0, 100) {
         test.insert(x,x);
