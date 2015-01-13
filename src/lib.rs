@@ -323,16 +323,16 @@ impl<T> Default for GapBuffer<T> {
 }
 
 //Eq & PartialEq
-impl <A, B> PartialEq<GapBuffer<B>> for GapBuffer<A> where A: PartialEq<B> {
+impl <A: Clone, B: Clone> PartialEq<GapBuffer<B>> for GapBuffer<A> where A: PartialEq<B> {
     #[inline]
     fn eq(&self, other: &GapBuffer<B>) -> bool { PartialEq::eq(&**self, &**other) }
     #[inline]
     fn ne(&self, other: &GapBuffer<B>) -> bool { PartialEq::ne(&**self, &**other) }
 }
 
-impl<A: Eq> Eq for GapBuffer<A> {}
+impl<A: Eq + Clone> Eq for GapBuffer<A> {}
 
-impl<T> Deref for GapBuffer<T> {
+impl<T: Clone> Deref for GapBuffer<T> {
     type Target = [T];
 
     fn deref<'b>(&'b self) -> &'b [T] {
@@ -341,14 +341,14 @@ impl<T> Deref for GapBuffer<T> {
 }
 
 //Ord & PartialOrd
-impl<A: PartialOrd> PartialOrd for GapBuffer<A> {
+impl<A: PartialOrd + Clone> PartialOrd for GapBuffer<A> {
     #[inline]
     fn partial_cmp(&self, other: &GapBuffer<A>) -> Option<Ordering> {
         self.as_slice().partial_cmp(other.as_slice())
     }
 }
 
-impl<A: Ord> Ord for GapBuffer<A> {
+impl<A: Ord + Clone> Ord for GapBuffer<A> {
     #[inline]
     fn cmp(&self, other: &GapBuffer<A>) -> Ordering {
         self.as_slice().cmp(other.as_slice())
@@ -356,7 +356,7 @@ impl<A: Ord> Ord for GapBuffer<A> {
 }
 
 //FromIterator
-impl<A> FromIterator<A> for GapBuffer<A> {
+impl<A: Clone> FromIterator<A> for GapBuffer<A> {
     fn from_iter<I: Iterator<Item=A>>(iterator: I) -> GapBuffer<A> {
         let (lower, _) = iterator.size_hint();
         let mut zip = GapBuffer::with_capacity(lower);
@@ -377,13 +377,13 @@ impl<A> Extend<A> for GapBuffer<A> {
 }
 
 //Show
-impl<T: fmt::Show> fmt::Show for GapBuffer<T> {
+impl<T: fmt::Show + Clone> fmt::Show for GapBuffer<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.as_slice().fmt(f)
     }
 }
 
-impl<T> Index<usize> for GapBuffer<T> {
+impl<T: Clone> Index<usize> for GapBuffer<T> {
     type Output = T;
 
     #[inline]
@@ -402,28 +402,28 @@ impl<T: Clone> IndexMut<usize> for GapBuffer<T> {
 }
 
 
-impl<T> ops::Index<ops::Range<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::Index<ops::Range<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index(&self, index: &ops::Range<usize>) -> &[T] {
         self.as_slice().index(index)
     }
 }
-impl<T> ops::Index<ops::RangeTo<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::Index<ops::RangeTo<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index(&self, index: &ops::RangeTo<usize>) -> &[T] {
         self.as_slice().index(index)
     }
 }
-impl<T> ops::Index<ops::RangeFrom<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::Index<ops::RangeFrom<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index(&self, index: &ops::RangeFrom<usize>) -> &[T] {
         self.as_slice().index(index)
     }
 }
-impl<T> ops::Index<ops::FullRange> for GapBuffer<T> {
+impl<T: Clone> ops::Index<ops::FullRange> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index(&self, _index: &ops::FullRange) -> &[T] {
@@ -431,28 +431,28 @@ impl<T> ops::Index<ops::FullRange> for GapBuffer<T> {
     }
 }
 
-impl<T> ops::IndexMut<ops::Range<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::IndexMut<ops::Range<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index_mut(&mut self, index: &ops::Range<usize>) -> &mut [T] {
         self.as_mut_slice().index_mut(index)
     }
 }
-impl<T> ops::IndexMut<ops::RangeTo<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::IndexMut<ops::RangeTo<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index_mut(&mut self, index: &ops::RangeTo<usize>) -> &mut [T] {
         self.as_mut_slice().index_mut(index)
     }
 }
-impl<T> ops::IndexMut<ops::RangeFrom<usize>> for GapBuffer<T> {
+impl<T: Clone> ops::IndexMut<ops::RangeFrom<usize>> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index_mut(&mut self, index: &ops::RangeFrom<usize>) -> &mut [T] {
         self.as_mut_slice().index_mut(index)
     }
 }
-impl<T> ops::IndexMut<ops::FullRange> for GapBuffer<T> {
+impl<T: Clone> ops::IndexMut<ops::FullRange> for GapBuffer<T> {
     type Output = [T];
     #[inline]
     fn index_mut(&mut self, _index: &ops::FullRange) -> &mut [T] {
