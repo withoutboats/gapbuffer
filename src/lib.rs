@@ -588,7 +588,7 @@ mod tests {
             assert!(test1.remove(0) == Some(x), "Remove failed at {} (forward)", x);
         }
 
-        test2.extend(range(0, 5));
+        test2.extend(0..5);
         test2.remove(0);
         for (i, x) in test2.iter().enumerate() {
             assert!(x == i + 1, "Remove test2 failed. Index {} is {}", x, i);
@@ -601,12 +601,12 @@ mod tests {
 
         let mut test = GapBuffer::new();
 
-        for x in range(0, 5) {
+        for x in 0..5 {
             test.insert(x,x)
         }
 
         let mut slice = test[].iter();
-        let mut index = range(0, 5);
+        let mut index = 0..5;
         loop {
             match (slice.next(), index.next()) {
                 (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in []"); }
@@ -615,7 +615,7 @@ mod tests {
         }
 
         slice = test[3..].iter();
-        index = range(3, 5);
+        index = 3..5;
         loop {
             match (slice.next(), index.next()) {
                 (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [3..]"); }
@@ -624,7 +624,7 @@ mod tests {
         }
 
         slice = test[..3].iter();
-        index = range(0, 3);
+        index = 0..3;
         loop {
             match (slice.next(), index.next()) {
                 (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [..3]"); }
@@ -633,7 +633,7 @@ mod tests {
         }
 
         slice = test[1..4].iter();
-        index = range(1, 4);
+        index = 1..4;
         loop {
             match (slice.next(), index.next()) {
                 (Some(x), Some(y)) => { assert!(x == &y, "Slice failed in [1..4]"); }
@@ -646,10 +646,10 @@ mod tests {
     #[test]
     fn test_slice_after_remove() {
         let mut buffer: GapBuffer<usize> = GapBuffer::new();
-        buffer.extend(range(0,5));
+        buffer.extend(0..5);
         buffer.remove(0);
 
-        assert!(buffer[] == [1, 2, 3, 4],  "Slice after removed failed.");
+        assert!(&buffer[] == [1, 2, 3, 4].as_slice(), "Slice after removed failed.");
         assert!(buffer[0] == 1, "buffer[0] = {}", buffer[0]);
     }
 
