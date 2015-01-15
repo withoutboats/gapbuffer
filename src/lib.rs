@@ -64,8 +64,11 @@ impl<T> GapBuffer<T> {
             // guaranteed to be nonnegative, and then i should be added (it cannot exceed
             // self.len() since i < offset, hence it cannot overflow).
             (self.len() - self.offset) + i
+        } else if i < self.len() {
+            // At or right of cursor, subtract offset.
+            i - self.offset
         } else {
-            // At or right of cursor, so just use i.
+            // i out of bounds--leave it that way.
             i
         }
     }
@@ -266,7 +269,7 @@ impl<T> fmt::Show for GapBuffer<T> where T: fmt::Show {
         if let Some(fst) = iter.next() {
             try!(write!(f, "{:?}", fst));
             for e in iter {
-                try!(write!(f, "{:?},", e));
+                try!(write!(f, ",{:?}", e));
             }
         }
         write!(f, "]")
