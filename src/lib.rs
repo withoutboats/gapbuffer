@@ -10,17 +10,12 @@
 //
 //  You should have received a copy of the GNU Lesser General Public License along with this
 //  program.  If not, see <http://www.gnu.org/licenses/>.
-#![feature(slicing_syntax)]
 #![allow(unstable)]
-
-extern crate core;
-extern crate alloc;
-
-use core::fmt;
 
 use std::collections::ring_buf::RingBuf;
 use std::iter::FromIterator;
 use std::cmp::Ordering;
+use std::fmt;
 use std::ops::{Index, IndexMut};
 
 /// A GapBuffer is a dynamic array which implements methods to shift the empty portion of the
