@@ -10,7 +10,7 @@
 //
 //  You should have received a copy of the GNU Lesser General Public License along with this
 //  program.  If not, see <http://www.gnu.org/licenses/>.
-#![allow(unstable)]
+#![feature(core)]
 
 use std::collections::ring_buf::RingBuf;
 use std::iter::FromIterator;
@@ -257,7 +257,7 @@ impl<A> Extend<A> for GapBuffer<A> {
 }
 
 //Show
-impl<T> fmt::Show for GapBuffer<T> where T: fmt::Show {
+impl<T> fmt::Debug for GapBuffer<T> where T: fmt::Debug {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "["));
         let mut iter = self.iter();
@@ -282,8 +282,6 @@ impl<T> Index<usize> for GapBuffer<T> {
 }
 
 impl<T> IndexMut<usize> for GapBuffer<T> {
-    type Output = T;
-
     #[inline]
     fn index_mut<'a>(&'a mut self, index: &usize) -> &'a mut T {
         let index = self.get_idx(*index);
