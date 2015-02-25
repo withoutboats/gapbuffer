@@ -12,8 +12,8 @@
 //  program.  If not, see <http://www.gnu.org/licenses/>.
 #![feature(core)]
 
-use std::collections::ring_buf::RingBuf;
-use std::iter::FromIterator;
+use std::collections::VecDeque;
+use std::iter::{IntoIterator, FromIterator};
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Index, IndexMut};
@@ -32,14 +32,14 @@ pub struct GapBuffer<T> {
     /// into the leftmost empty slot in the gap, while popping from the front is considered
     /// deleting the leftmost nonempty slot after the gap.  Moving the gap right means cycling the
     /// first element to the back; moving left means cycling the last element to the front.
-    buf: RingBuf<T>,
+    buf: VecDeque<T>,
 }
 
 impl<T> GapBuffer<T> {
     ///Constructs an empty GapBuffer.
     pub fn new() -> GapBuffer<T> {
         GapBuffer {
-            buf: RingBuf::new(),
+            buf: VecDeque::new(),
             offset: 0,
         }
     }
@@ -47,7 +47,7 @@ impl<T> GapBuffer<T> {
     ///Constructs a GapBuffer with a given initial capacity.
     pub fn with_capacity(n: usize) -> GapBuffer<T> {
         GapBuffer {
-            buf: RingBuf::with_capacity(n),
+            buf: VecDeque::with_capacity(n),
             offset: 0,
         }
     }
@@ -159,7 +159,7 @@ impl<T> GapBuffer<T> {
 
     /// Insert a new T at a given index (the gap will be shifted to that index).
     ///
-    /// Panics if i is greater than RingBuf's length.
+    /// Panics if i is greater than VecDeque's length.
     pub fn insert(&mut self, i: usize, t: T) {
         // Valid indices: [0, len]
         assert!(i <= self.len(), "index out of bounds");
@@ -234,8 +234,8 @@ impl<A> Ord for GapBuffer<A> where A: Ord {
 
 //FromIterator
 impl<A> FromIterator<A> for GapBuffer<A> {
-    fn from_iter<I: Iterator<Item=A>>(iterator: I) -> GapBuffer<A> {
-        let buf = iterator.collect();
+    fn from_iter<I: IntoIterator<Item=A>>(iterator: I) -> GapBuffer<A> {
+        let buf = iterator.into_iter().collect();
         GapBuffer {
             buf: buf,
             offset: 0,
@@ -245,7 +245,7 @@ impl<A> FromIterator<A> for GapBuffer<A> {
 
 //Extend
 impl<A> Extend<A> for GapBuffer<A> {
-    fn extend<T: Iterator<Item=A>>(&mut self, iterator: T) {
+    fn extend<T: IntoIterator<Item=A>>(&mut self, iterator: T) {
         let len = self.len();
         // push_back inserts into the leftmost empty slot in the gap.
         self.shift(len);
