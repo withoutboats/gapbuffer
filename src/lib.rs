@@ -10,8 +10,6 @@
 //
 //  You should have received a copy of the GNU Lesser General Public License along with this
 //  program.  If not, see <http://www.gnu.org/licenses/>.
-#![feature(core)]
-
 use std::collections::VecDeque;
 use std::iter::{IntoIterator, FromIterator};
 use std::cmp::Ordering;
@@ -275,16 +273,16 @@ impl<T> Index<usize> for GapBuffer<T> {
     type Output = T;
 
     #[inline]
-    fn index<'a>(&'a self, index: &usize) -> &'a T {
-        let index = self.get_idx(*index);
+    fn index<'a>(&'a self, index: usize) -> &'a T {
+        let index = self.get_idx(index);
         &self.buf[index]
     }
 }
 
 impl<T> IndexMut<usize> for GapBuffer<T> {
     #[inline]
-    fn index_mut<'a>(&'a mut self, index: &usize) -> &'a mut T {
-        let index = self.get_idx(*index);
+    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
+        let index = self.get_idx(index);
         &mut self.buf[index]
     }
 }
